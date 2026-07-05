@@ -1,0 +1,38 @@
+# E2E stack: the real app image (built from the repo-root Dockerfile) plus a
+# Playwright runner. Browser deps live only in the runner image, never in the
+# production app image (PLAN.md §12).
+#
+#   docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
+#   docker compose -f docker-compose.test.yml down -v
+#
+# The `e2e` service's exit code is the suite's pass/fail.
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    environment:
+      LLM_MOCK: "true" # deterministic chat, no OpenRouter key needed
+    tmpfs:
+      - /app/db # throwaway DB -> fresh $10k / empty portfolio every run
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health').status==200 else 1)"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.49.0-noble
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      RUN_AGAINST_RUNNING: "1"
+      BASE_URL: "http://app:8000"
+      CI: "true"
+    working_dir: /work
+    volumes:
+      - ..:/work-repo:ro
+      - ./:/work
+    command: sh -c "npm ci || npm install && npx playwright test"

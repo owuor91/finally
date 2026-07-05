@@ -5,6 +5,14 @@
     "playwright@claude-plugins-official": true
   },
   "permissions": {
-  "allow": ["Bash(uv sync:*)", "Bash(uv run:*)", "Bash(python3:*)"]
-}
+    "allow": [
+      "Bash(uv sync:*)",
+      "Bash(uv run:*)",
+      "Bash(python3:*)"
+    ]
+  },
+  "env":{
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS":"1"
+  },
+  "teammateMode": "in-process"
 }
